@@ -1,0 +1,74 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>공군사관학교 연구비 신청체계 - 로그인</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center">
+    <div class="max-w-md w-full">
+        <div class="text-center mb-8">
+            <img src="{% static 'img/afalogo.png' %}" alt="공군사관학교 로고" class="mx-auto h-20 w-20">
+            <h2 class="mt-4 text-3xl font-bold text-gray-900">
+                공군사관학교 연구비 신청체계
+            </h2>
+        </div>
+
+        <div class="bg-white py-8 px-6 shadow rounded-lg">
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                <div>
+                    <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        군번
+                    </label>
+                    <div class="mt-1">
+                        {{ form.username }}
+                    </div>
+                    {% if form.username.errors %}
+                    <p class="mt-2 text-sm text-red-600">
+                        {{ form.username.errors|join:", " }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        비밀번호
+                    </label>
+                    <div class="mt-1">
+                        {{ form.password }}
+                    </div>
+                    {% if form.password.errors %}
+                    <p class="mt-2 text-sm text-red-600">
+                        {{ form.password.errors|join:", " }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <button type="submit" 
+                            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        로그인
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="mt-4 text-center text-sm text-gray-600">
+            <p class="mb-2">계정이 없으신가요? <a href="{% url 'research:signup' %}" class="text-blue-600 hover:text-blue-500 font-medium">회원가입</a></p>
+            <p>로그인에 문제가 있으시면 관리자에게 문의하세요.</p>
+        </div>
+    </div>
+</body>
+</html>

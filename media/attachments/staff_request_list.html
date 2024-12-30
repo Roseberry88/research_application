@@ -1,0 +1,244 @@
+{% extends 'research/staff/base.html' %}
+
+{% block content %}
+<div class="bg-white shadow-md rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">관리자 신청 목록</h2>
+    </div>
+
+    <!-- 필터링 섹션 -->
+    <div class="mb-6">
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">상태</label>
+                    <select name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <option value="">전체</option>
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>대기중</option>
+                        <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>승인</option>
+                        <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>거절</option>
+                    </select>
+                </div>
+                <div class="flex items-end space-x-2">
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                        검색
+                    </button>
+                    <a href="{% url 'research:staff_request_list' %}" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                        초기화
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 신청 목록 테이블 -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청일시</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청자</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">소속</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신분</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for request in staff_requests %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ request.created_at|date:"Y-m-d H:i" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ request.user.get_full_name }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ request.user.department.name }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ request.user.get_status_display }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                            {% if request.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif request.status == 'approved' %}bg-green-100 text-green-800
+                            {% else %}bg-red-100 text-red-800{% endif %}">
+                            {{ request.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if request.status == 'pending' %}
+                        <div class="flex space-x-2">
+                            <button onclick="showRequestDetail('{{ request.pk }}')" 
+                                    class="text-indigo-600 hover:text-indigo-900">
+                                상세보기
+                            </button>
+                            <button onclick="approveRequest('{{ request.pk }}')"
+                                    class="text-green-600 hover:text-green-900">
+                                승인
+                            </button>
+                            <button onclick="rejectRequest('{{ request.pk }}')"
+                                    class="text-red-600 hover:text-red-900">
+                                거절
+                            </button>
+                        </div>
+                        {% else %}
+                        <button onclick="showRequestDetail('{{ request.pk }}')" 
+                                class="text-indigo-600 hover:text-indigo-900">
+                            상세보기
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                        관리자 신청 내역이 없습니다.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 상세 정보 모달 -->
+<div id="requestDetailModal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+        <div class="relative bg-white rounded-lg max-w-lg w-full mx-4">
+            <div class="px-6 py-4">
+                <h3 class="text-lg font-medium text-gray-900">관리자 신청 상세 정보</h3>
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">신청 사유</label>
+                        <div id="requestReason" class="mt-1 p-3 bg-gray-50 rounded-md"></div>
+                    </div>
+                    <div id="rejectionReasonSection" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700">거절 사유</label>
+                        <div id="rejectionReason" class="mt-1 p-3 bg-gray-50 rounded-md"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-3 bg-gray-50 rounded-b-lg flex justify-end">
+                <button onclick="closeModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 거절 사유 입력 모달 -->
+<div id="rejectReasonModal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+        <div class="relative bg-white rounded-lg max-w-lg w-full mx-4">
+            <div class="px-6 py-4">
+                <h3 class="text-lg font-medium text-gray-900">거절 사유 입력</h3>
+                <div class="mt-4">
+                    <textarea id="rejectReasonInput" 
+                              class="w-full rounded-md border-gray-300 shadow-sm"
+                              rows="4"
+                              placeholder="거절 사유를 입력해주세요."></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-3 bg-gray-50 rounded-b-lg flex justify-end space-x-2">
+                <button onclick="submitReject()" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">
+                    확인
+                </button>
+                <button onclick="closeRejectModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                    취소
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedRequestId = null;
+
+function showRequestDetail(requestId) {
+    // Ajax로 상세 정보 가져오기
+    fetch(`/api/staff-requests/${requestId}/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('requestReason').textContent = data.reason;
+            const rejectionSection = document.getElementById('rejectionReasonSection');
+            if (data.status === 'rejected' && data.rejection_reason) {
+                document.getElementById('rejectionReason').textContent = data.rejection_reason;
+                rejectionSection.classList.remove('hidden');
+            } else {
+                rejectionSection.classList.add('hidden');
+            }
+            document.getElementById('requestDetailModal').classList.remove('hidden');
+        });
+}
+
+function closeModal() {
+    document.getElementById('requestDetailModal').classList.add('hidden');
+}
+
+function approveRequest(requestId) {
+    if (confirm('이 신청을 승인하시겠습니까?')) {
+        fetch(`/api/staff-requests/${requestId}/approve/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+}
+
+function rejectRequest(requestId) {
+    selectedRequestId = requestId;
+    document.getElementById('rejectReasonModal').classList.remove('hidden');
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectReasonModal').classList.add('hidden');
+    selectedRequestId = null;
+}
+
+function submitReject() {
+    const reason = document.getElementById('rejectReasonInput').value;
+    if (!reason.trim()) {
+        alert('거절 사유를 입력해주세요.');
+        return;
+    }
+
+    fetch(`/api/staff-requests/${selectedRequestId}/reject/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ reason: reason })
+    }).then(response => {
+        if (response.ok) {
+            location.reload();
+        }
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

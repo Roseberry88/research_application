@@ -1,0 +1,365 @@
+{% extends 'research/staff/base.html' %}
+{% block content %}
+<div class="bg-white shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">연구비 신청서 상세정보</h2>
+    </div>
+
+    <!-- 기본 정보 -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">과제번호</label>
+            <div class="mt-1 p-2 bg-gray-50 rounded">
+                {{ application.research_budget.research.project_number }}
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">과제명</label>
+            <div class="mt-1 p-2 bg-gray-50 rounded">
+                {{ application.research_budget.research.project_name }}
+            </div>
+        </div>
+    </div>
+
+    <!-- 연구책임자 정보 -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2">연구책임자</h3>
+        <div class="grid grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">이름</label>
+                <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                    {{ application.research_budget.research.researcher.get_full_name }}
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">소속</label>
+                <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                    {{ application.research_budget.research.researcher.department.name }}
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">ID</label>
+                <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                    {{ application.research_budget.research.researcher.username }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 신청 정보 -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">예산항목</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ application.research_budget.get_budget_type_display }}
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">연구비항목</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ application.budget_subcategory }}
+            </div>
+        </div>
+    </div>
+
+    <!-- 날짜 및 상태 정보 -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">신청일자</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ application.application_date }}
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">집행일자</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ application.execution_date }}
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">상태</label>
+            <div class="mt-1">
+                <span class="px-2 py-1 text-sm font-medium rounded-full
+                    {% if application.status == '신청' %} bg-yellow-100 text-yellow-800
+                    {% elif application.status == '결재' %} bg-green-100 text-green-800
+                    {% elif application.status == '기각' %} bg-red-100 text-red-800
+                    {% endif %}">
+                    {{ application.get_status_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 금액 정보 -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">연구비 총액</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ total_budget|floatformat:0 }}원
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">예산</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ budget_amount|floatformat:0 }}원
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">잔액</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ remaining_amount|floatformat:0 }}원
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">신청액</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ application.amount|floatformat:0 }}원
+            </div>
+        </div>
+    </div>
+
+    <!-- 신청 내용 -->
+    <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700">신청내용</label>
+        <div class="mt-1 p-2 bg-gray-200 text-gray-600 rounded min-h-[100px] whitespace-pre-wrap">{{ application.description|default:"" }}</div>
+    </div>
+
+    <!-- 지불 방법 -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2">지불 방법</h3>
+        <div class="p-4 bg-gray-200 text-gray-600 rounded">
+            <div class="mb-2">
+                {% if payment_method.is_card %}
+                    <span class="font-medium">연구비카드:</span> {{ payment_method.card.card_number }}
+                {% else %}
+                    <span class="font-medium">계좌이체:</span>
+                    {{ payment_method.bank_account.bank_name }} - {{ payment_method.bank_account.account_number }} ({{ payment_method.bank_account.account_holder }})
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 첨부파일 -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2">첨부파일</h3>
+        <div class="border rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">파일명</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">업로드 일시</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase">작업</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for attachment in attachments %}
+                    <tr>
+                        <td class="px-6 py-4">{{ attachment.file_name }}</td>
+                        <td class="px-6 py-4">{{ attachment.uploaded_at }}</td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{{ attachment.file.url }}" 
+                               class="text-blue-600 hover:text-blue-900"
+                               target="_blank">
+                                다운로드
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="px-6 py-4 text-center text-gray-500">
+                            첨부된 파일이 없습니다.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 관리자용 상태 변경 폼 -->
+    {% if user.is_staff %}
+    {% if application.status == '기각' and application.rejection_reason %}
+    <div class="mt-8 pt-6 border-t">
+        <h3 class="text-lg font-medium mb-2">기각 사유</h3>
+        <div class="p-4 bg-red-200 text-gray-600 rounded-md">
+            {{ application.rejection_reason }}
+        </div>
+    </div>
+    {% elif application.status == '신청' %}
+    <div class="mt-8 pt-6 border-t">
+        <h3 class="text-lg font-medium mb-4">관리자 작업</h3>
+        <form method="post" action="{% url 'research:change_application_status' application.pk %}">
+            {% csrf_token %}
+            <div class="space-y-4">
+                <input type="hidden" name="status" id="selectedStatus">
+                
+                <div class="flex space-x-6 items-center">
+                    <!-- 버튼 그룹 -->
+                    <div class="flex space-x-4">
+                        <button type="button" 
+                                id="approveBtn"
+                                class="w-32 h-10 rounded-md bg-green-500 text-white opacity-50 hover:opacity-75 transition-opacity"
+                                onclick="selectStatus('승인')">
+                            결재
+                        </button>
+                        <button type="button" 
+                                id="rejectBtn"
+                                class="w-32 h-10 rounded-md bg-red-500 text-white opacity-50 hover:opacity-75 transition-opacity"
+                                onclick="selectStatus('기각')">
+                            기각
+                        </button>
+                    </div>
+                
+                    <!-- 승인시 집행날짜 선택 (처음에는 숨김) -->
+                    <div id="executionDateContainer" class="hidden flex-grow max-w-xs"> <!-- max-w-xs 추가 -->
+                        <label class="block text-sm font-medium text-gray-700 mb-1">집행 날짜 선택</label>
+                        <input type="date" 
+                            name="execution_date" 
+                            id="executionDate"
+                            class="w-full h-10 rounded-md border-gray-300 shadow-sm px-3">
+                    </div>
+
+                    <!-- 기각 사유 (처음에는 숨김) -->
+                    <div id="rejectionReasonContainer" class="hidden flex-grow max-w-md"> <!-- max-w-md 추가 -->
+                        <label class="block text-sm font-medium text-gray-700 mb-1">기각 사유 입력</label>
+                        <textarea name="rejection_reason" 
+                                id="rejectionReason"
+                                placeholder="기각 사유를 입력해주세요"
+                                class="w-full h-10 rounded-md border-gray-300 shadow-sm px-3 py-2"></textarea>
+                    </div>
+                </div>
+            
+                <!-- 상태 변경 제출 버튼 -->
+                <div class="flex justify-end">
+                    <button type="submit" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                        상태 변경
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 모달 부분을 이렇게 수정 -->
+    <div id="confirmationModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" style="z-index: 1000;">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modalTitle">상태 변경 확인</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500" id="modalMessage"></p>
+                    <div id="modalDetail" class="mt-3 text-left bg-gray-50 p-3 rounded">
+                    </div>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="confirmButton"
+                        class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                        예
+                    </button>
+                    <button id="cancelButton"
+                        class="ml-3 px-4 py-2 bg-gray-100 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        아니오
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 모달 관련 요소
+        const modal = document.getElementById('confirmationModal');
+        const statusForm = document.getElementById('statusForm');
+    
+        function selectStatus(status) {
+            const approveBtn = document.getElementById('approveBtn');
+            const rejectBtn = document.getElementById('rejectBtn');
+            const rejectionContainer = document.getElementById('rejectionReasonContainer');
+            const executionContainer = document.getElementById('executionDateContainer');
+            const selectedStatusInput = document.getElementById('selectedStatus');
+            
+            // Reset both buttons
+            approveBtn.style.opacity = '0.5';
+            rejectBtn.style.opacity = '0.5';
+            
+            // Hide both containers initially
+            rejectionContainer.classList.add('hidden');
+            executionContainer.classList.add('hidden');
+            
+            // Show appropriate container based on status
+            if (status === '승인') {
+                approveBtn.style.opacity = '1';
+                executionContainer.classList.remove('hidden');
+            } else {
+                rejectBtn.style.opacity = '1';
+                rejectionContainer.classList.remove('hidden');
+            }
+            
+            selectedStatusInput.value = status;
+        }
+    
+        // 모달 표시
+        function showModal(status) {
+            const modalMessage = document.getElementById('modalMessage');
+            const modalDetail = document.getElementById('modalDetail');
+            const executionDate = document.getElementById('executionDate');
+            const rejectionReason = document.getElementById('rejectionReason');
+    
+            if (status === '승인') {
+                const formattedDate = new Date(executionDate.value).toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                modalMessage.textContent = '정말 승인하시겠습니까? 이 작업은 번복할 수 없습니다.';
+                modalDetail.innerHTML = `<p class="font-medium">집행 날짜: ${formattedDate}</p>`;
+            } else {
+                modalMessage.textContent = '정말 기각하시겠습니까? 이 작업은 번복할 수 없습니다.';
+                modalDetail.innerHTML = `<p class="font-medium">기각 사유: ${rejectionReason.value}</p>`;
+            }
+    
+            modal.classList.remove('hidden');
+        }
+    
+        // 모달 숨기기
+        function hideModal() {
+            modal.classList.add('hidden');
+        }
+    
+        // 폼 제출 처리
+        if (statusForm) {
+            statusForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const selectedStatus = document.getElementById('selectedStatus').value;
+                
+                if (!selectedStatus) {
+                    alert('상태를 선택해주세요.');
+                    return;
+                }
+    
+                if (selectedStatus === '승인') {
+                    if (!document.getElementById('executionDate').value) {
+                        alert('집행날짜를 선택해주세요.');
+                        return;
+                    }
+                    showModal('승인');
+                } else {
+                    if (!document.getElementById('rejectionReason').value.trim()) {
+                        alert('기각 사유를 입력해주세요.');
+                        return;
+                    }
+                    showModal('기각');
+                }
+            });
+        }
+    
+        // 모달 버튼 이벤트
+        document.getElementById('confirmButton').addEventListener('click', function() {
+            statusForm.removeEventListener('submit', arguments.callee);
+            statusForm.submit();
+        });
+    
+        document.getElementById('cancelButton').addEventListener('click', hideModal);
+    </script>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

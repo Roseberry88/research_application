@@ -1,0 +1,123 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>공군사관학교 연구비 신청체계 - 관리자 신청</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen py-12">
+    <div class="max-w-2xl mx-auto px-4">
+        <div class="text-center mb-8">
+            <img src="{% static 'img/afalogo.png' %}" alt="공군사관학교 로고" class="mx-auto h-20 w-20">
+            <h2 class="mt-4 text-3xl font-bold text-gray-900">
+                관리자 권한 신청
+            </h2>
+            <p class="mt-2 text-gray-600">관리자 권한 신청을 위해 아래 양식을 작성해주세요.</p>
+        </div>
+
+        <div class="bg-white py-8 px-6 shadow rounded-lg">
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="bg-{{ message.tags }}-100 border-l-4 border-{{ message.tags }}-500 text-{{ message.tags }}-700 p-4" role="alert">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                <!-- ID(군번) -->
+                <div>
+                    <label for="{{ form.desired_username.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        사용할 ID
+                    </label>
+                    <div class="mt-1">
+                        {{ form.desired_username }}
+                    </div>
+                    {% if form.desired_username.errors %}
+                    <p class="mt-2 text-sm text-red-600">
+                        {{ form.desired_username.errors|join:", " }}
+                    </p>
+                    {% endif %}
+                    {% if form.desired_username.help_text %}
+                    <p class="mt-2 text-sm text-gray-500">
+                        {{ form.desired_username.help_text }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- 비밀번호 -->
+                <div>
+                    <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        비밀번호
+                    </label>
+                    <div class="mt-1">
+                        {{ form.password }}
+                    </div>
+                    {% if form.password.errors %}
+                    <p class="mt-2 text-sm text-red-600">
+                        {{ form.password.errors|join:", " }}
+                    </p>
+                    {% endif %}
+                    {% if form.password.help_text %}
+                    <p class="mt-2 text-sm text-gray-500">
+                        {{ form.password.help_text }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- 비밀번호 확인 -->
+                <div>
+                    <label for="{{ form.password_confirm.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        비밀번호 확인
+                    </label>
+                    <div class="mt-1">
+                        {{ form.password_confirm }}
+                    </div>
+                    {% if form.password_confirm.errors %}
+                    <p class="mt-2 text-sm text-red-600">
+                        {{ form.password_confirm.errors|join:", " }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- 신청 사유 -->
+                <div>
+                    <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        신청 사유
+                    </label>
+                    <div class="mt-1">
+                        {{ form.reason }}
+                    </div>
+                    {% if form.reason.errors %}
+                    <p class="mt-2 text-sm text-red-600">
+                        {{ form.reason.errors|join:", " }}
+                    </p>
+                    {% endif %}
+                    {% if form.reason.help_text %}
+                    <p class="mt-2 text-sm text-gray-500">
+                        {{ form.reason.help_text }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <button type="submit" 
+                            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        신청하기
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="mt-4 text-center">
+            <a href="{% url 'research:login' %}" class="text-sm text-blue-600 hover:text-blue-500">
+                로그인 페이지로 돌아가기
+            </a>
+        </div>
+    </div>
+</body>
+</html>

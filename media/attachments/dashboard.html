@@ -1,0 +1,143 @@
+{% extends 'research/base.html' %}
+
+{% block content %}
+<div class="bg-white shadow p-6">
+    <!-- Search Form -->
+    <form method="get" class="space-y-4 mb-6">
+        <!-- Date Range -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="col-span-1">
+                <label class="block text-sm font-medium mb-1">신청기간</label>
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                    <input type="date" name="start_date" value="{{ request.GET.start_date }}" class="w-full sm:w-auto border rounded px-2 py-1 text-sm">
+                    <span class="flex items-center justify-center">~</span>
+                    <input type="date" name="end_date" value="{{ request.GET.end_date }}" class="w-full sm:w-auto border rounded px-2 py-1 text-sm">
+                </div>
+            </div>
+            <div class="col-span-1">
+                <label class="block text-sm font-medium mb-1">과제번호</label>
+                <input type="text" name="project_number" value="{{ request.GET.project_number }}" class="w-full border rounded px-2 py-1 text-sm">
+            </div>
+            <div class="col-span-1">
+                <label class="block text-sm font-medium mb-1">과제명</label>
+                <input type="text" name="project_name" value="{{ request.GET.project_name }}" class="w-full border rounded px-2 py-1 text-sm">
+            </div>
+        </div>
+
+        <!-- Second Row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">연구책임자</label>
+                <input type="text" name="researcher" value="{{ request.GET.researcher }}" class="w-full border rounded px-2 py-1 text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">예산항목</label>
+                <select name="budget_type" class="w-full border rounded px-2 py-1 text-sm">
+                    <option value="">전체</option>
+                    {% for type in budget_types %}
+                    <option value="{{ type.0 }}" {% if request.GET.budget_type == type.0 %}selected{% endif %}>{{ type.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">결제단계</label>
+                <select name="status" class="w-full border rounded px-2 py-1 text-sm">
+                    <option value="">전체</option>
+                    {% for status in status_choices %}
+                    <option value="{{ status.0 }}" {% if request.GET.status == status.0 %}selected{% endif %}>{{ status.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end space-x-2">
+            <button type="submit" class="px-4 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">조회</button>
+            <a href="{% url 'research:dashboard' %}" class="px-4 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700">초기화</a>
+        </div>
+    </form>
+
+    <!-- Research List -->
+    <div class="mt-8 border-t pt-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">연구비신청 목록</h2>
+            <div class="flex space-x-2">
+                <a href="{% url 'research:application_create' %}" class="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700">추가</a>
+                <button onclick="deleteSelected()" class="bg-red-600 text-white px-4 py-1 rounded text-sm hover:bg-red-700">삭제</button>
+            </div>
+        </div>
+
+        <!-- Results Table with Form -->
+        <form id="deleteForm" method="post" action="{% url 'research:delete_applications' %}">
+            {% csrf_token %}
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse border text-sm">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="border p-2 text-left">
+                                <input type="checkbox" id="selectAll" onclick="toggleAll(this)">
+                            </th>
+                            <th class="border p-2 text-left">신청일자</th>
+                            <th class="border p-2 text-left">과제번호</th>
+                            <th class="border p-2 text-left">과제명</th>
+                            <th class="border p-2 text-left">연구책임자</th>
+                            <th class="border p-2 text-left">예산항목</th>
+                            <th class="border p-2 text-left">연구비항목</th>
+                            <th class="border p-2 text-left">결제단계</th>
+                            <th class="border p-2 text-left">기각사유</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for application in applications %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="border p-2">
+                                <input type="checkbox" name="selected_applications" value="{{ application.id }}" class="application-checkbox">
+                            </td>
+                            <td class="border p-2">{{ application.application_date|date:"Y-m-d" }}</td>
+                            <td class="border p-2">{{ application.research_budget.research.project_number }}</td>
+                            <td class="border p-2">
+                                <a href="{% url 'research:application_detail' application.pk %}" class="text-blue-600 hover:text-blue-900">
+                                    {{ application.research_budget.research.project_name }}
+                                </a>
+                            </td>
+                            <td class="border p-2">{{ application.research_budget.research.researcher.get_full_name }}</td>
+                            <td class="border p-2">{{ application.research_budget.get_budget_type_display }}</td>
+                            <td class="border p-2">{{ application.amount|floatformat:0 }}</td>
+                            <td class="border p-2">{{ application.get_status_display }}</td>
+                            <td class="border p-2">{{ application.rejection_reason|default:'' }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="border p-2 text-center text-gray-500">검색 결과가 없습니다.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleAll(source) {
+    const checkboxes = document.getElementsByClassName('application-checkbox');
+    for (let checkbox of checkboxes) {
+        checkbox.checked = source.checked;
+    }
+}
+
+function deleteSelected() {
+    const checkboxes = document.getElementsByClassName('application-checkbox');
+    const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    if (selectedCount === 0) {
+        alert('삭제할 연구를 체크해 주십시오.');
+        return;
+    }
+    
+    if (confirm(`정말 ${selectedCount}개의 연구비신청을 삭제하시겠습니까?`)) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+</script>
+{% endblock %}

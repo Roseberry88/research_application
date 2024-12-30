@@ -1,0 +1,11 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block submit_buttons_bottom %}
+<div class="submit-row">
+    {% if show_approval_buttons %}
+        <input type="submit" value="승인" name="_approve" class="default" style="background-color: #417690;">
+        <input type="submit" value="거절" name="_reject" class="deletelink" style="background-color: #ba2121;">
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends 'research/base.html' %}
+{% block content %}
+<div class="bg-white shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">연구비 신청서 상세정보</h2>
+        {% if user == application.applicant or user.is_staff %}
+            <div class="space-x-2">
+                <a href="{% url 'research:application_edit' application.pk %}" 
+                   class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                    수정
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- 기본 정보 -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">과제번호</label>
+            <div class="mt-1 p-2 bg-gray-50 rounded">
+                {{ application.research_budget.research.project_number }}
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">과제명</label>
+            <div class="mt-1 p-2 bg-gray-50 rounded">
+                {{ application.research_budget.research.project_name }}
+            </div>
+        </div>
+    </div>
+
+    <!-- 연구책임자 정보 -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2">연구책임자</h3>
+        <div class="grid grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">이름</label>
+                <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                    {{ application.research_budget.research.researcher.get_full_name }}
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">소속</label>
+                <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                    {{ application.research_budget.research.researcher.department.name }}
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">ID</label>
+                <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                    {{ application.research_budget.research.researcher.username }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 신청 정보 -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">예산항목</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ application.research_budget.get_budget_type_display }}
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">연구비항목</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ application.budget_subcategory }}
+            </div>
+        </div>
+    </div>
+
+    <!-- 날짜 및 상태 정보 -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">신청일자</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ application.application_date }}
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">집행일자</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ application.execution_date }}
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">상태</label>
+            <div class="mt-1">
+                <span class="px-2 py-1 text-sm font-medium rounded-full
+                    {% if application.status == '신청' %} bg-yellow-100 text-yellow-800
+                    {% elif application.status == '결재' %} bg-green-100 text-green-800
+                    {% elif application.status == '기각' %} bg-red-100 text-red-800
+                    {% endif %}">
+                    {{ application.get_status_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 금액 정보 -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">연구비 총액</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ total_budget|floatformat:0 }}원
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">예산</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ budget_amount|floatformat:0 }}원
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">잔액</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ remaining_amount|floatformat:0 }}원
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">신청액</label>
+            <div class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                {{ application.amount|floatformat:0 }}원
+            </div>
+        </div>
+    </div>
+
+    <!-- 신청 내용 -->
+    <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700">신청내용</label>
+        <div class="mt-1 p-2 bg-gray-200 text-gray-600 rounded min-h-[100px] whitespace-pre-wrap">{{ application.description|default:"" }}</div>
+    </div>
+
+    <!-- 지불 방법 -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2">지불 방법</h3>
+        <div class="p-4 bg-gray-200 text-gray-600 rounded">
+            <div class="mb-2">
+                {% if payment_method.is_card %}
+                    <span class="font-medium">연구비카드:</span> {{ payment_method.card.card_number }}
+                {% else %}
+                    <span class="font-medium">계좌이체:</span>
+                    {{ payment_method.bank_account.bank_name }} - {{ payment_method.bank_account.account_number }} ({{ payment_method.bank_account.account_holder }})
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 첨부파일 -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2">첨부파일</h3>
+        <div class="border rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">파일명</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">업로드 일시</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase">작업</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for attachment in attachments %}
+                    <tr>
+                        <td class="px-6 py-4">{{ attachment.file_name }}</td>
+                        <td class="px-6 py-4">{{ attachment.uploaded_at }}</td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{{ attachment.file.url }}" 
+                               class="text-blue-600 hover:text-blue-900"
+                               target="_blank">
+                                다운로드
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="px-6 py-4 text-center text-gray-500">
+                            첨부된 파일이 없습니다.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 기각 사유 표시 (기각된 경우에만) -->
+    {% if application.status == '기각' and application.rejection_reason %}
+    <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2">기각 사유</h3>
+        <div class="p-4 bg-red-200 text-gray-600 rounded">
+            {{ application.rejection_reason }}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

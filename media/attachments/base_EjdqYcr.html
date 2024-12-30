@@ -1,0 +1,123 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+   <meta charset="UTF-8">
+   <title>공군사관학교 연구비 신청체계</title>
+   <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+   <style>
+    /* Status Badge Styles */
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 1rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-align: center;
+        min-width: 4rem;
+    }
+
+    .status-badge-pending {
+        background-color: #FFF3CD;
+        color: #856404;
+        border: 1px solid #FFEEBA;
+    }
+
+    .status-badge-approved {
+        background-color: #D4EDDA;
+        color: #155724;
+        border: 1px solid #C3E6CB;
+    }
+
+    .status-badge-rejected {
+        background-color: #F8D7DA;
+        color: #721C24;
+        border: 1px solid #F5C6CB;
+    }
+    </style>
+</head>
+<body class="{% if user.is_staff %}bg-indigo-50{% else %}bg-gray-100{% endif %}">
+   <!-- Header -->
+   <header class="{% if user.is_staff %}bg-indigo-900{% else %}bg-blue-900{% endif %} text-white">
+       <div class="max-w-7xl mx-auto px-4">
+           <div class="flex items-center justify-between py-4">
+               <div class="flex items-center">
+                   <a href="{% url 'research:dashboard' %}" class="flex items-center hover:opacity-90">
+                       <div class="logo-container">
+                           <img src="{% static 'img/afalogo.png' %}" alt="공군사관학교 로고" class="mr-2">
+                       </div>
+                       <h1 class="text-xl font-bold ml-3">
+                           공군사관학교 연구비 신청체계
+                           {% if user.is_staff %}<span class="ml-2 text-sm bg-red-500 px-2 py-1 rounded">관리자 모드</span>{% endif %}
+                       </h1>
+                   </a>
+               </div>
+
+               {% if user.is_authenticated %}
+               <div class="flex items-center space-x-6">
+                   <!-- 관리자 메뉴 -->
+                   {% if user.is_staff %}
+                   <nav>
+                       <ul class="flex space-x-4">
+                           <li>
+                               <a href="{% url 'research:admin_dashboard' %}" 
+                                  class="hover:text-indigo-200 {% if request.resolver_match.url_name == 'admin_dashboard' %}text-indigo-200 font-bold{% endif %}">
+                                   대시보드
+                               </a>
+                           </li>
+                           <li>
+                               <a href="{% url 'research:admin_research_list' %}"
+                                  class="hover:text-indigo-200 {% if 'admin_research' in request.resolver_match.url_name %}text-indigo-200 font-bold{% endif %}">
+                                   연구과제 관리
+                               </a>
+                           </li>
+                           <li>
+                               <a href="{% url 'research:admin_application_list' %}"
+                                  class="hover:text-indigo-200 {% if 'admin_application' in request.resolver_match.url_name %}text-indigo-200 font-bold{% endif %}">
+                                   연구비신청 관리
+                               </a>
+                           </li>
+                       </ul>
+                   </nav>
+                   {% endif %}
+
+                   <!-- 사용자 정보 및 로그아웃 -->
+                   <div class="flex items-center space-x-4">
+                       <span class="text-sm">
+                           {{ user.get_full_name }}
+                           ({{ user.username }})
+                       </span>
+                       <form method="post" action="{% url 'research:logout' %}" class="inline">
+                           {% csrf_token %}
+                           <button type="submit" 
+                                   class="{% if user.is_staff %}bg-indigo-700 hover:bg-indigo-600{% else %}bg-blue-700 hover:bg-blue-600{% endif %} 
+                                       px-3 py-1 rounded transition-colors text-sm">
+                               로그아웃
+                           </button>
+                       </form>
+                   </div>
+               </div>
+               {% endif %}
+           </div>
+       </div>
+   </header>
+
+   <!-- Messages -->
+   {% if messages %}
+   <div class="max-w-7xl mx-auto px-4 py-4">
+       {% for message in messages %}
+       <div class="{% if user.is_staff %}bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700{% else %}bg-blue-100 border-l-4 border-blue-500 text-blue-700{% endif %} 
+                   p-4 mb-2" role="alert">
+           {{ message }}
+       </div>
+       {% endfor %}
+   </div>
+   {% endif %}
+
+   <!-- Main Content -->
+   <main class="max-w-7xl mx-auto px-4 py-6">
+       {% block content %}
+       {% endblock %}
+   </main>
+</body>
+</html>

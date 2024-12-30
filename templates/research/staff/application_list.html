@@ -1,0 +1,193 @@
+{% extends 'research/staff/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<div class="bg-white shadow-md rounded-lg p-6">
+    <!-- 검색 폼 -->
+    <div class="mb-6">
+        <form method="get" class="space-y-4">
+            <!-- 날짜 및 검색 필터 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">신청기간</label>
+                    <div class="flex space-x-2">
+                        <input type="date" name="start_date" 
+                               value="{{ request.GET.start_date }}"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <span class="self-center">~</span>
+                        <input type="date" name="end_date" 
+                               value="{{ request.GET.end_date }}"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">과제번호</label>
+                    <input type="text" name="project_number" 
+                           value="{{ request.GET.project_number }}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">신청자</label>
+                    <input type="text" name="applicant" 
+                           value="{{ request.GET.applicant }}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+            </div>
+
+            <!-- 추가 필터 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">예산항목</label>
+                    <select name="budget_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <option value="">전체</option>
+                        {% for type in budget_types %}
+                        <option value="{{ type.0 }}" {% if request.GET.budget_type == type.0 %}selected{% endif %}>
+                            {{ type.1 }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">상태</label>
+                    <select name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <option value="">전체</option>
+                        {% for status in status_choices %}
+                        <option value="{{ status.0 }}" {% if request.GET.status == status.0 %}selected{% endif %}>
+                            {{ status.1 }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- 검색 버튼 -->
+            <div class="flex justify-end space-x-2">
+                <button type="submit" 
+                        class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                    검색
+                </button>
+                <a href="{% url 'research:staff_application_list' %}" 
+                   class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                    초기화
+                </a>
+                <button type="button" onclick="submitExcelForm()" 
+                        class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                    엑셀 다운로드
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 신청 목록 테이블 -->
+    <div class="mt-8">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">연구비신청 목록</h2>
+            <span class="text-sm text-gray-500">(단위 : 원)</span>
+        </div>
+        <form method="post" action="{% url 'research:staff_excel' %}">
+            {% csrf_token %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="w-4 p-4">
+                                <input type="checkbox" class="form-checkbox rounded" id="select-all">
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청일자</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">과제번호</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">과제명</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청자</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">예산항목</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청금액</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">결재단계</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기각사유</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for application in applications %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="w-4 p-4">
+                                <input type="checkbox" class="form-checkbox rounded" name="selected_applications" value="{{ application.id }}">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ application.application_date|date:"Y-m-d" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ application.research_budget.research.project_number }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                <a href="{% url 'research:staff_application_view' application.pk %}" class="text-indigo-600 hover:text-indigo-900">
+                                    {{ application.research_budget.research.project_name }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ application.applicant.get_full_name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ application.research_budget.get_budget_type_display }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ application.amount|floatformat:0|intcomma }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-sm font-medium rounded-full 
+                                    {% if application.status == '신청' %} bg-yellow-100 text-yellow-800
+                                    {% elif application.status == '결재' %} bg-green-100 text-green-800
+                                    {% elif application.status == '기각' %} bg-red-100 text-red-800
+                                    {% endif %}">
+                                    {{ application.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                {% if application.status == '기각' and application.rejection_reason %}
+                                    <span class="inline-block max-w-xs truncate" title="{{ application.rejection_reason }}">
+                                        {{ application.rejection_reason|truncatechars:10 }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                                검색 결과가 없습니다.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('select-all').addEventListener('change', function() {
+    var checkboxes = document.getElementsByName('selected_applications');
+    checkboxes.forEach(function(checkbox) {
+        checkbox.checked = this.checked;
+    }.bind(this));
+});
+
+function submitExcelForm() {
+    document.querySelector('form[action*="excel"]').submit();
+}
+
+function submitExcelForm() {
+    const checkboxes = document.getElementsByName('selected_applications');
+    const checked = Array.from(checkboxes).some(cb => cb.checked);
+    
+    if (!checked) {
+        Swal.fire({
+            title: '알림',
+            text: '선택된 연구비 신청이 없습니다!',
+            icon: 'warning',
+            confirmButtonText: '확인'
+        });
+        return;
+    }
+    
+    document.querySelector('form[action*="excel"]').submit();
+}
+</script>
+{% endblock %}

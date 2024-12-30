@@ -1,0 +1,783 @@
+{% extends 'research/base.html' %}
+
+{% block content %}
+<div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-2xl font-bold mb-6">
+        {% if application %}연구비 신청서 수정{% else %}새 연구비 신청{% endif %}
+    </h2>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- 과제 선택 -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700">연구과제 <span class="text-red-500">*</span></label>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <input type="text" id="project_number_search" 
+                           placeholder="과제번호로 검색" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <input type="text" id="project_name_search" 
+                           placeholder="과제명으로 검색" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+            </div>
+            <div id="search_results" class="mt-2 hidden">
+                <ul class="bg-white border rounded-md shadow-sm max-h-40 overflow-y-auto"></ul>
+            </div>
+            <input type="hidden" name="research" id="research_select" 
+                   {% if application %}value="{{ application.research_budget.research.pk }}"{% endif %}>
+        </div>
+
+        <!-- 연구책임자 정보 -->
+        <div id="researcher_info" class="mb-6 hidden">
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">연구책임자</label>
+                    <input type="text" id="researcher_name" readonly 
+                           class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">ID</label>
+                    <input type="text" id="researcher_id" readonly 
+                           class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">소속</label>
+                    <input type="text" id="researcher_department" readonly 
+                           class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700">연구비 총액</label>
+                <input type="text" id="total_budget" readonly 
+                       class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+            </div>
+        </div>
+
+        <!-- 예산 항목 선택 -->
+        <div id="budget_select_div" class="mb-6 hidden">
+            <label class="block text-sm font-medium text-gray-700">예산항목 <span class="text-red-500">*</span></label>
+            <select name="research_budget" id="budget_select" 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                    {% if application %}disabled{% endif %}>
+                <option value="">예산항목을 선택하세요</option>
+            </select>
+        </div>
+
+        <!-- 연구비 항목 선택 -->
+        <div id="subcategory_select_div" class="mb-6 hidden">
+            <label class="block text-sm font-medium text-gray-700">연구비항목 <span class="text-red-500">*</span></label>
+            <select name="budget_subcategory" id="subcategory_select" 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                <option value="">연구비항목을 선택하세요</option>
+            </select>
+        </div>
+
+        <!-- 예산 정보 -->
+        <div id="budget_info" class="mb-6 hidden">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">예산</label>
+                    <input type="text" id="budget_amount" readonly 
+                           class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">잔액</label>
+                    <input type="text" id="remaining_amount" readonly 
+                           class="mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600">
+                </div>
+            </div>
+        </div>
+
+        <!-- 신청 내용 영역 - 예산항목 선택 후 표시 -->
+        <div id="application_info" class="hidden">
+            <!-- 날짜 및 금액 -->
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">신청일자 <span class="text-red-500">*</span></label>
+                    <input type="date" name="application_date" 
+                           value="{{ application.application_date|date:'Y-m-d' }}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                           required>
+                </div>
+                {% if user.is_staff %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">집행일자</label>
+                    <input type="date" name="execution_date" 
+                           value="{{ application.execution_date|date:'Y-m-d' }}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                           required>
+                </div>
+                {% else %}
+                <input type="hidden" name="execution_date" value="">
+                {% endif %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">신청금액 <span class="text-red-500">*</span></label>
+                    <input type="number" name="amount" id="amount_input"
+                           value="{{ application.amount }}"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                           required>
+                </div>
+            </div>
+
+            <!-- 신청 내용 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700">신청내용 <span class="text-red-500">*</span></label>
+                <textarea name="description" 
+                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                          rows="4" required>{{ application.description }}</textarea>
+            </div>
+
+            <!-- 지불 방법 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">수령방법 <span class="text-red-500">*</span></label>
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-4">
+                        <input type="radio" name="payment_type" value="card" id="payment_card"
+                            {% if payment_method.is_card %}checked{% endif %}>
+                        <label for="payment_card">연구비카드</label>
+                        
+                        <input type="radio" name="payment_type" value="bank" id="payment_bank"
+                            {% if not payment_method.is_card %}checked{% endif %}>
+                        <label for="payment_bank">계좌이체</label>
+                    </div>
+
+                    <!-- 카드 정보 -->
+                    <div id="card_info" class="{% if not payment_method.is_card %}hidden{% endif %}">
+                        <select name="card" id="card_select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <option value="">카드를 선택하세요</option>
+                            {% for card in research_cards %}
+                            <option value="{{ card.id }}" {% if payment_method.card_id == card.id %}selected{% endif %}>
+                                {{ card.card_number }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" id="add_card_btn" 
+                                class="mt-2 bg-blue-100 text-blue-700 px-3 py-1 rounded-md hover:bg-blue-200">
+                            새 카드 등록
+                        </button>
+                    </div>
+
+                    <!-- 계좌 정보 -->
+                    <div id="bank_info" class="{% if payment_method.is_card %}hidden{% endif %}">
+                        <select name="bank_account" id="bank_account_select" 
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <option value="">계좌를 선택하세요</option>
+                            {% for account in user_accounts %}
+                            <option value="{{ account.id }}" {% if payment_method.bank_account_id == account.id %}selected{% endif %}>
+                                {{ account.bank_name }} - {{ account.account_number }} ({{ account.account_holder }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" id="add_account_btn"
+                                class="mt-2 bg-blue-100 text-blue-700 px-3 py-1 rounded-md hover:bg-blue-200">
+                            새 계좌 등록
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 첨부파일 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">증빙자료 <span class="text-red-500">*</span></label>
+                {% if attachments %}
+                <table class="min-w-full divide-y divide-gray-200 mb-4">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">파일명</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">작업</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for attachment in attachments %}
+                        <tr>
+                            <td class="px-6 py-4">{{ attachment.file_name }}</td>
+                            <td class="px-6 py-4 text-right">
+                                <form method="post" action="{% url 'research:delete_attachment' attachment.pk %}"
+                                      class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="text-red-600 hover:text-red-900"
+                                            onclick="return confirm('정말 삭제하시겠습니까?')">
+                                        삭제
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                <div class="mt-2">
+                    <input type="file" name="attachments" multiple
+                           class="block w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-md file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-blue-50 file:text-blue-700
+                                  hover:file:bg-blue-100">
+                    <p class="mt-1 text-sm text-gray-500">
+                        여러 파일을 한 번에 선택할 수 있습니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 제출 버튼 -->
+            <div class="flex justify-end space-x-2">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                    {% if application %}수정 완료{% else %}신청하기{% endif %}
+                </button>
+                <a href="{% url 'research:application_list' %}" 
+                   class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                    취소
+                </a>
+            </div>
+        </div>
+    </form>
+
+    <!-- 새 계좌 등록 모달 -->
+    <div id="account_modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+            <h3 class="text-lg font-medium mb-4">새 계좌 등록</h3>
+            <form id="new_account_form" onsubmit="registerAccount(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">은행</label>
+                    <select name="bank_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                        <option value="">은행을 선택하세요</option>
+                        {% for bank in bank_choices %}
+                        <option value="{{ bank.0 }}">{{ bank.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">계좌번호</label>
+                    <input type="text" name="account_number" 
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                        placeholder="계좌번호를 입력하세요" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">예금주</label>
+                    <input type="text" name="account_holder" 
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                        placeholder="예금주명을 입력하세요" required>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="submit" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">등록</button>
+                    <button type="button" onclick="closeAccountModal()" 
+                            class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 새 카드 등록 모달 -->
+    <div id="card_modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+            <h3 class="text-lg font-medium mb-4">새 카드 등록</h3>
+            <form id="new_card_form">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">카드번호</label>
+                    <input type="text" name="card_number" maxlength="16"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                        placeholder="카드번호를 입력하세요 (14~16자리)" required>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">등록</button>
+                    <button type="button" onclick="closeCardModal()" 
+                            class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                        취소
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+async function updateCardList(researchId) {
+    const cardSelect = document.getElementById('card_select');
+    try {
+        const response = await fetch(`/api/get-research-cards/${researchId}/`);
+        const data = await response.json();
+        
+        cardSelect.innerHTML = '<option value="">카드를 선택하세요</option>';
+        data.cards.forEach(card => {
+            const option = new Option(card.card_number, card.id);
+            cardSelect.add(option);
+        });
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const researchSelect = document.getElementById('research_select');
+    const budgetSelect = document.getElementById('budget_select');
+    const researcherInfo = document.getElementById('researcher_info');
+    const budgetSelectDiv = document.getElementById('budget_select_div');
+    const budgetInfo = document.getElementById('budget_info');
+    const applicationInfo = document.getElementById('application_info');
+    const amountInput = document.getElementById('amount_input');
+    const subcategorySelectDiv = document.getElementById('subcategory_select_div');
+    const subcategorySelect = document.getElementById('subcategory_select');
+
+    // 수령방법 관련
+    const cardRadio = document.getElementById('payment_card');
+    const bankRadio = document.getElementById('payment_bank');
+    const cardInfo = document.getElementById('card_info');
+    const bankInfo = document.getElementById('bank_info');
+
+    // 오류 메시지 표시 함수 추가
+    function showError(element, message) {
+        // 기존 오류 메시지 제거
+        removeError(element);
+        
+        // 새 오류 메시지 추가
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message text-sm text-red-600 mt-1';
+        errorDiv.textContent = message;
+        element.parentNode.insertBefore(errorDiv, element.nextSibling);
+        
+        // 필드 스타일 변경
+        element.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+    }
+
+    // 오류 메시지 제거 함수
+    function removeError(element) {
+        const existingError = element.parentNode.querySelector('.error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+        element.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+    }
+
+    function togglePaymentInfo() {
+        if (cardRadio.checked) {
+            cardInfo.classList.remove('hidden');
+            bankInfo.classList.add('hidden');
+        } else {
+            cardInfo.classList.add('hidden');
+            bankInfo.classList.remove('hidden');
+        }
+    }
+
+    cardRadio.addEventListener('change', togglePaymentInfo);
+    bankRadio.addEventListener('change', togglePaymentInfo);
+
+    // 연구과제 선택 시
+    researchSelect.addEventListener('change', async function() {
+        if (this.value) {
+            try {
+                const response = await fetch(`/api/research-info/${this.value}/`);
+                const data = await response.json();
+                
+                // 연구책임자 정보 표시
+                document.getElementById('researcher_name').value = data.researcher.name;
+                document.getElementById('researcher_id').value = data.researcher.id;
+                document.getElementById('researcher_department').value = data.researcher.department || '';
+                document.getElementById('total_budget').value = 
+                    new Intl.NumberFormat('ko-KR').format(data.total_budget) + '원';
+                researcherInfo.classList.remove('hidden');
+
+                            // 카드 목록 업데이트 추가
+                try {
+                    const cardsResponse = await fetch(`/api/get-research-cards/${this.value}/`);
+                    const cardsData = await cardsResponse.json();
+                    
+                    const cardSelect = document.getElementById('card_select');
+                    cardSelect.innerHTML = '<option value="">카드를 선택하세요</option>';
+                    cardsData.cards.forEach(card => {
+                        const option = document.createElement('option');
+                        option.value = card.id;
+                        option.textContent = card.card_number;
+                        cardSelect.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Error fetching cards:', error);
+                }
+                
+                // 예산 항목 옵션 생성
+                budgetSelect.innerHTML = '<option value="">예산항목을 선택하세요</option>';
+                data.budget_items.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.type;
+                    option.dataset.totalAmount = item.total_amount;
+                    option.dataset.remainingAmount = item.remaining_amount;
+                    budgetSelect.appendChild(option);
+                });
+
+                await updateCardList(this.value);
+                budgetSelectDiv.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('연구과제 정보를 불러오는데 실패했습니다.');
+            }
+        } else {
+            researcherInfo.classList.add('hidden');
+            budgetSelectDiv.classList.add('hidden');
+            budgetInfo.classList.add('hidden');
+            subcategorySelectDiv.classList.add('hidden');
+            applicationInfo.classList.add('hidden');
+        }
+    });
+
+    // 예산항목 선택 시
+    budgetSelect.addEventListener('change', async function() {
+        if (this.value) {
+            const selectedOption = this.options[this.selectedIndex];
+            document.getElementById('budget_amount').value = 
+                new Intl.NumberFormat('ko-KR').format(selectedOption.dataset.totalAmount) + '원';
+            document.getElementById('remaining_amount').value = 
+                new Intl.NumberFormat('ko-KR').format(selectedOption.dataset.remainingAmount) + '원';
+            budgetInfo.classList.remove('hidden');
+            
+            // 연구비항목 옵션 가져오기
+            try {
+                const response = await fetch(`/api/get-budget-subcategories/?category=${encodeURIComponent(selectedOption.textContent)}`);
+                const data = await response.json();
+                
+                subcategorySelect.innerHTML = '<option value="">연구비항목을 선택하세요</option>';
+                data.subcategories.forEach(subcategory => {
+                    const option = document.createElement('option');
+                    option.value = subcategory;
+                    option.textContent = subcategory;
+                    subcategorySelect.appendChild(option);
+                });
+                
+                subcategorySelectDiv.classList.remove('hidden');
+                applicationInfo.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('연구비항목 정보를 불러오는데 실패했습니다.');
+            }
+        } else {
+            budgetInfo.classList.add('hidden');
+            subcategorySelectDiv.classList.add('hidden');
+            applicationInfo.classList.add('hidden');
+        }
+    });
+
+    // 신청금액 입력 시 잔액 체크
+    amountInput.addEventListener('change', function() {
+        const selectedOption = budgetSelect.options[budgetSelect.selectedIndex];
+        if (selectedOption && this.value) {
+            const remainingAmount = parseFloat(selectedOption.dataset.remainingAmount);
+            if (parseFloat(this.value) > remainingAmount) {
+                alert(`신청금액이 잔액(${new Intl.NumberFormat('ko-KR').format(remainingAmount)}원)을 초과할 수 없습니다.`);
+                this.value = '';
+                this.focus();
+            }
+        }
+    });
+
+    // 폼 제출 시 연구비항목 선택 확인
+    // 폼 제출 시 필수 항목 검증
+    // 폼 제출 시 검증 로직 수정
+    document.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        let hasError = false;
+
+        // 모든 기존 오류 메시지 제거
+        document.querySelectorAll('.error-message').forEach(msg => msg.remove());
+
+        // 연구비항목 검증
+        if (!subcategorySelect.value) {
+            showError(subcategorySelect, '연구비항목을 선택해주세요.');
+            hasError = true;
+        }
+
+        // 신청일자 검증
+        const applicationDate = document.querySelector('input[name="application_date"]');
+        if (!applicationDate.value) {
+            showError(applicationDate, '신청일자를 입력해주세요.');
+            hasError = true;
+        }
+
+        // 신청금액 검증
+        if (!amountInput.value) {
+            showError(amountInput, '신청금액을 입력해주세요.');
+            hasError = true;
+        }
+
+        // 신청내용 검증
+        const description = document.querySelector('textarea[name="description"]');
+        if (!description.value.trim()) {
+            showError(description, '신청내용을 입력해주세요.');
+            hasError = true;
+        }
+
+        // 지불 방법 검증
+        if (bankRadio.checked) {
+            const bankAccount = document.getElementById('bank_account_select');
+            if (!bankAccount.value) {
+                showError(bankAccount, '계좌를 선택해주세요.');
+                hasError = true;
+            }
+        } else if (cardRadio.checked) {
+            const card = document.getElementById('card_select');
+            if (!card.value) {
+                showError(card, '카드를 선택해주세요.');
+                hasError = true;
+            }
+        }
+
+        // 증빙자료 검증
+        const newAttachments = document.querySelector('input[name="attachments"]');
+        const existingAttachments = document.querySelectorAll('table tbody tr');
+        if (newAttachments.files.length === 0 && existingAttachments.length === 0) {
+            showError(newAttachments, '최소 1개 이상의 증빙자료를 첨부해주세요.');
+            hasError = true;
+        }
+
+        // 오류가 없으면 폼 제출
+        if (!hasError) {
+            this.submit();
+        }
+    });
+
+    // 입력 필드 변경 시 오류 메시지 제거
+    document.querySelectorAll('input, select, textarea').forEach(element => {
+        element.addEventListener('change', function() {
+            removeError(this);
+        });
+        element.addEventListener('input', function() {
+            removeError(this);
+        });
+    });
+});
+
+const projectNumberSearch = document.getElementById('project_number_search');
+const projectNameSearch = document.getElementById('project_name_search');
+const searchResults = document.getElementById('search_results');
+const searchResultsList = searchResults.querySelector('ul');
+
+async function performSearch(query, type) {
+    try {
+        const response = await fetch(`/api/research/search/?q=${query}&type=${type}`);
+        const data = await response.json();
+        
+        searchResultsList.innerHTML = '';
+        if (data.results.length > 0) {
+            data.results.forEach(result => {
+                const li = document.createElement('li');
+                li.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer';
+                li.textContent = `${result.project_number} - ${result.project_name}`;
+                li.onclick = () => selectResearch(result);
+                searchResultsList.appendChild(li);
+            });
+            searchResults.classList.remove('hidden');
+        } else {
+            searchResults.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+function selectResearch(research) {
+    document.getElementById('research_select').value = research.id;
+    projectNumberSearch.value = research.project_number;
+    projectNameSearch.value = research.project_name;
+    searchResults.classList.add('hidden');
+    
+    // 기존의 research_select change 이벤트 트리거
+    const event = new Event('change');
+    document.getElementById('research_select').dispatchEvent(event);
+}
+
+let searchTimeout;
+projectNumberSearch.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        if (e.target.value.length > 0) {
+            performSearch(e.target.value, 'number');
+        } else {
+            searchResults.classList.add('hidden');
+        }
+    }, 300);
+});
+
+projectNameSearch.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        if (e.target.value.length > 0) {
+            performSearch(e.target.value, 'name');
+        } else {
+            searchResults.classList.add('hidden');
+        }
+    }, 300);
+});
+
+// 검색 결과 외의 영역 클릭시 결과 숨기기
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#search_results') && 
+        !e.target.closest('#project_number_search') && 
+        !e.target.closest('#project_name_search')) {
+        searchResults.classList.add('hidden');
+    }
+});
+
+const accountModal = document.getElementById('account_modal');
+const cardModal = document.getElementById('card_modal');
+const addAccountBtn = document.getElementById('add_account_btn');
+const addCardBtn = document.getElementById('add_card_btn');
+const newAccountForm = document.getElementById('new_account_form');
+const newCardForm = document.getElementById('new_card_form');
+const bankAccountSelect = document.getElementById('bank_account_select');
+const cardSelect = document.getElementById('card_select');
+
+// 계좌 모달 관련 함수들
+function openAccountModal() {
+    accountModal.classList.remove('hidden');
+}
+
+function closeAccountModal() {
+    accountModal.classList.add('hidden');
+    newAccountForm.reset();
+}
+
+addAccountBtn.addEventListener('click', openAccountModal);
+
+// 카드 모달 관련 함수들
+function openCardModal() {
+    cardModal.classList.remove('hidden');
+}
+
+function closeCardModal() {
+    cardModal.classList.add('hidden');
+    newCardForm.reset();
+}
+
+addCardBtn.addEventListener('click', openCardModal);
+
+newCardForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(newCardForm);
+    const cardNumber = formData.get('card_number');
+    const researchId = document.getElementById('research_select').value;
+    
+    if (!researchId) {
+        alert('연구과제를 먼저 선택해주세요.');
+        return;
+    }
+    
+    if (cardNumber.length < 14 || cardNumber.length > 16) {
+        alert('카드번호는 14~16자리여야 합니다.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/research-cards/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                research_id: researchId,
+                card_number: cardNumber
+            })
+        });
+
+        if (response.ok) {
+            // 응답이 성공적이면 카드 목록을 다시 불러옴
+            await updateCardList(researchId);
+            closeCardModal();
+            alert('카드가 성공적으로 등록되었습니다.');
+        } else {
+            const error = await response.json();
+            alert(error.message || '카드 등록에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('카드 등록 중 오류가 발생했습니다.');
+    }
+});
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeAccountModal();
+        closeCardModal();
+    }
+});
+
+// 모달 바깥 영역 클릭시 닫기
+accountModal.addEventListener('click', (e) => {
+    if (e.target === accountModal) {
+        closeAccountModal();
+    }
+});
+
+cardModal.addEventListener('click', (e) => {
+    if (e.target === cardModal) {
+        closeCardModal();
+    }
+});
+
+async function registerAccount(event) {
+    if (event) {
+        event.preventDefault();
+    }
+    
+    const formData = new FormData(document.getElementById('new_account_form'));
+    const bankName = formData.get('bank_name');
+    const accountNumber = formData.get('account_number');
+    const accountHolder = formData.get('account_holder');
+
+    // 입력값 검증
+    if (!bankName || !accountNumber || !accountHolder) {
+        alert('모든 필드를 입력해주세요.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/bank-accounts/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                bank_name: bankName,
+                account_number: accountNumber,
+                account_holder: accountHolder
+            })
+        });
+
+        if (response.ok) {
+            const account = await response.json();
+            
+            // 계좌 선택 드롭다운에 새 계좌 추가
+            const bankAccountSelect = document.getElementById('bank_account_select');
+            const option = new Option(
+                `${account.bank_name} - ${account.account_number} (${account.account_holder})`,
+                account.id,
+                true,
+                true
+            );
+            bankAccountSelect.add(option);
+            
+            // 성공 메시지 표시
+            alert('계좌가 성공적으로 등록되었습니다.');
+            
+            // 모달 닫기 및 폼 초기화
+            closeAccountModal();
+        } else {
+            const error = await response.json();
+            alert(error.message || '계좌 등록에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('계좌 등록 중 오류가 발생했습니다.');
+    }
+}
+</script>
+{% endblock %}
